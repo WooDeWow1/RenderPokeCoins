@@ -29,9 +29,7 @@ export const Navbar = () => {
 
         <nav className="hidden items-center gap-10 md:flex">
           <Link to="/" className={linkCls} data-testid="nav-store">Store</Link>
-          {user && (
-            <Link to="/dashboard" className={linkCls} data-testid="nav-dashboard">Orders</Link>
-          )}
+          <Link to="/dashboard" className={linkCls} data-testid="nav-dashboard">Orders</Link>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} data-testid="nav-admin">Admin</Link>
           )}
@@ -84,7 +82,7 @@ export const Navbar = () => {
       {mobile && (
         <div data-testid="mobile-menu" className="flex flex-col gap-4 border-t border-[#1f1f1f] px-5 py-5 md:hidden">
           <Link to="/" className={linkCls} onClick={() => setMobile(false)}>Store</Link>
-          {user && <Link to="/dashboard" className={linkCls} onClick={() => setMobile(false)}>Orders</Link>}
+          <Link to="/dashboard" className={linkCls} onClick={() => setMobile(false)}>Orders</Link>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} onClick={() => setMobile(false)}>Admin</Link>
           )}

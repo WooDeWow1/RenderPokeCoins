@@ -4,6 +4,7 @@ import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { api, apiError, money } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const input =
   "w-full bg-black px-4 py-3 font-mono text-sm text-[#00ffcc] outline-none ring-1 ring-[#00ffcc]/30 transition-shadow focus:ring-[#00ffcc]";
@@ -11,6 +12,9 @@ const label = "mb-2 block text-[10px] uppercase tracking-[0.25em] text-zinc-500"
 
 export default function Checkout() {
   const { items, total, invalid } = useCart();
+  const { user } = useAuth();
+  const isGuest = !user;
+  const [email, setEmail] = useState("");
   const [ptcUsername, setPtcUsername] = useState("");
   const [ptcPassword, setPtcPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,7 +30,15 @@ export default function Checkout() {
         ptc_username: ptcUsername,
         ptc_password: ptcPassword,
         origin_url: window.location.origin,
+        ...(isGuest ? { email } : {}),
       });
+      if (isGuest) {
+        const saved = JSON.parse(localStorage.getItem("pokeforge_guest_orders") || "[]");
+        localStorage.setItem(
+          "pokeforge_guest_orders",
+          JSON.stringify([data.order_id, ...saved.filter((id) => id !== data.order_id)])
+        );
+      }
       window.location.href = data.checkout_url;
     } catch (err) {
       const msg = apiError(err);
@@ -66,6 +78,18 @@ export default function Checkout() {
             ~/ptc/secure-handoff $
           </p>
           <div className="space-y-6">
+            {isGuest && (
+              <div>
+                <label className={label}>Email (for order updates)</label>
+                <input data-testid="guest-email-input" className={input} type="email" value={email}
+                       onChange={(e) => setEmail(e.target.value)} required />
+                <p className="mt-2 text-[10px] leading-relaxed text-zinc-600">
+                  Checking out as a guest.{" "}
+                  <Link to="/login" className="text-[#00ffcc] hover:underline">Sign in</Link>{" "}
+                  to keep every order in one dashboard.
+                </p>
+              </div>
+            )}
             <div>
               <label className={label}>PTC Username</label>
               <input data-testid="ptc-username-input" className={input} value={ptcUsername}

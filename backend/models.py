@@ -96,10 +96,11 @@ class CheckoutRequest(BaseModel):
     ptc_username: str = Field(min_length=1)
     ptc_password: str = Field(min_length=1)
     origin_url: str
+    email: Optional[EmailStr] = None
 
 
 class Order(BaseDocument):
-    user_id: str
+    user_id: str = ""
     user_email: str
     items: List[OrderItem]
     total: float

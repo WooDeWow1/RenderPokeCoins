@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { money } from "@/lib/api";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export const CartDrawer = () => {
   const { items, remove, setQty, total, invalid, open, setOpen } = useCart();
@@ -18,6 +18,9 @@ export const CartDrawer = () => {
           <SheetTitle className="font-display text-sm uppercase tracking-[0.25em] text-white">
             Your Cart
           </SheetTitle>
+          <SheetDescription className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+            Event Passes require a Pokécoin Bundle
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">

@@ -9,8 +9,15 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    api.get("/orders").then(({ data }) => setOrders(data)).catch(() => {});
-  }, []);
+    if (user) {
+      api.get("/orders").then(({ data }) => setOrders(data)).catch(() => {});
+      return;
+    }
+    const ids = JSON.parse(localStorage.getItem("pokeforge_guest_orders") || "[]");
+    Promise.all(
+      ids.map((id) => api.get(`/orders/${id}`).then(({ data }) => data).catch(() => null))
+    ).then((list) => setOrders(list.filter(Boolean)));
+  }, [user]);
 
   const active = orders.filter((o) => ["pending", "processing", "awaiting_payment"].includes(o.status));
   const past = orders.filter((o) => ["completed", "cancelled"].includes(o.status));
@@ -37,7 +44,7 @@ export default function Dashboard() {
   return (
     <div data-testid="dashboard-page" className="mx-auto max-w-[1200px] px-5 py-16 lg:px-10 lg:py-24">
       <p className="text-[10px] uppercase tracking-[0.3em] text-[#00ffcc]">// trainer console</p>
-      <h1 className="mt-4 font-display text-3xl tracking-tighter">{user?.name}</h1>
+      <h1 className="mt-4 font-display text-3xl tracking-tighter">{user ? user.name : "Guest orders"}</h1>
 
       <section className="mt-14">
         <h2 className="mb-6 text-[10px] uppercase tracking-[0.3em] text-zinc-500">Active orders</h2>

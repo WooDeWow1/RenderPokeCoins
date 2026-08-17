@@ -94,6 +94,15 @@ async def get_current_user(request: Request) -> dict:
     return user
 
 
+async def get_optional_user(request: Request) -> Optional[dict]:
+    try:
+        return await get_current_user(request)
+    except HTTPException as exc:
+        if exc.status_code == 429:
+            raise
+        return None
+
+
 async def get_admin_user(user: dict = Depends(get_current_user)) -> dict:
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -284,12 +293,14 @@ def order_response(doc: dict, include_credentials: bool = False) -> dict:
 
 
 async def notify(user_id: str, order_id: str, title: str, body: str):
+    if not user_id:
+        return
     n = Notification(user_id=user_id, order_id=order_id, title=title, body=body)
     await db.notifications.insert_one(n.to_mongo())
 
 
 @api.post("/orders/checkout")
-async def checkout(payload: CheckoutRequest, user: dict = Depends(get_current_user)):
+async def checkout(payload: CheckoutRequest, user: Optional[dict] = Depends(get_optional_user)):
     if not payload.items:
         raise HTTPException(status_code=400, detail="Cart is empty")
     items: List[OrderItem] = []
@@ -313,9 +324,13 @@ async def checkout(payload: CheckoutRequest, user: dict = Depends(get_current_us
         )
 
     total = round(sum(i.price * i.quantity for i in items), 2)
+    user_id = str(user["_id"]) if user else ""
+    email = (user["email"] if user else (payload.email or "")).lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="An email address is required for guest checkout")
     order = Order(
-        user_id=str(user["_id"]),
-        user_email=user["email"],
+        user_id=user_id,
+        user_email=email,
         items=items,
         total=total,
         status="awaiting_payment",
@@ -340,7 +355,7 @@ async def checkout(payload: CheckoutRequest, user: dict = Depends(get_current_us
         mode="payment",
         success_url=f"{payload.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{payload.origin_url}/payment/cancel",
-        metadata={"user_id": str(user["_id"]), "order_id": order_id},
+        metadata={"user_id": user_id, "order_id": order_id},
     )
     try:
         if TAX_MODE == "full":
@@ -364,7 +379,7 @@ async def checkout(payload: CheckoutRequest, user: dict = Depends(get_current_us
 
     await db.orders.update_one({"_id": result.inserted_id}, {"$set": {"session_id": session.id}})
     await db.payment_transactions.insert_one({
-        "session_id": session.id, "order_id": order_id, "user_id": str(user["_id"]),
+        "session_id": session.id, "order_id": order_id, "user_id": user_id,
         "amount": total, "currency": "usd", "status": "initiated", "payment_status": "pending",
         "created_at": utc_now(), "updated_at": utc_now(),
     })
@@ -441,12 +456,12 @@ async def all_orders(status: Optional[str] = None, admin: dict = Depends(get_adm
 
 
 @api.get("/orders/{order_id}")
-async def get_order(order_id: str, user: dict = Depends(get_current_user)):
+async def get_order(order_id: str, user: Optional[dict] = Depends(get_optional_user)):
     doc = await db.orders.find_one({"_id": oid(order_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Order not found")
-    is_admin = user.get("role") == "admin"
-    if not is_admin and doc["user_id"] != str(user["_id"]):
+    owner = doc.get("user_id") or ""
+    if owner and (not user or (user.get("role") != "admin" and owner != str(user["_id"]))):
         raise HTTPException(status_code=403, detail="Not your order")
     return order_response(doc)
 
@@ -488,32 +503,37 @@ async def update_status(order_id: str, payload: StatusUpdate, admin: dict = Depe
 
 
 # ---------------- Messaging ----------------
-async def assert_order_access(order_id: str, user: dict) -> dict:
+async def assert_order_access(order_id: str, user: Optional[dict]) -> dict:
     doc = await db.orders.find_one({"_id": oid(order_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Order not found")
-    if user.get("role") != "admin" and doc["user_id"] != str(user["_id"]):
+    owner = doc.get("user_id") or ""
+    if owner and (not user or (user.get("role") != "admin" and owner != str(user["_id"]))):
         raise HTTPException(status_code=403, detail="Not your order")
     return doc
 
 
 @api.get("/orders/{order_id}/messages")
-async def list_messages(order_id: str, user: dict = Depends(get_current_user)):
+async def list_messages(order_id: str, user: Optional[dict] = Depends(get_optional_user)):
     await assert_order_access(order_id, user)
     docs = await db.messages.find({"order_id": order_id}).sort("created_at", 1).to_list(500)
     return [Message.from_mongo(d).model_dump(by_alias=False) for d in docs]
 
 
 @api.post("/orders/{order_id}/messages")
-async def post_message(order_id: str, payload: MessageIn, user: dict = Depends(get_current_user)):
+async def post_message(order_id: str, payload: MessageIn, user: Optional[dict] = Depends(get_optional_user)):
     order = await assert_order_access(order_id, user)
-    role = user.get("role", "customer")
-    msg = Message(order_id=order_id, sender_id=str(user["_id"]), sender_name=user.get("name", "User"),
-                  sender_role=role, body=payload.body)
+    role = user.get("role", "customer") if user else "customer"
+    msg = Message(
+        order_id=order_id,
+        sender_id=str(user["_id"]) if user else "guest",
+        sender_name=user.get("name", "User") if user else "Guest",
+        sender_role=role,
+        body=payload.body,
+    )
     result = await db.messages.insert_one(msg.to_mongo())
     if role == "admin":
-        await notify(order["user_id"], order_id, "New message from support",
-                     payload.body[:140])
+        await notify(order.get("user_id", ""), order_id, "New message from support", payload.body[:140])
     msg.id = str(result.inserted_id)
     return msg.model_dump(by_alias=False)
 

@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 2 (guest-checkout): 26/26 backend pytest cases passed; frontend E2E confirmed the primary bug is fixed. Anonymous user with only a Pokécoin Bundle in the cart clicks 'Proceed to checkout' and lands on /checkout (checkout-page rendered) — no more /login bounce. Guest form shows guest-email-input alongside PTC fields, place-order-btn submits and redirects to a real Stripe checkout URL, order_id is persisted to localStorage 'pokeforge_guest_orders' and the /dashboard page (now public) lists that guest order under 'Guest orders'. Guest cart rule still enforced (event-pass-only 400s). Admin route protection intact: anonymous /admin → /login, non-admin customer /admin → /dashboard, admin login lands on /admin. Registered orders remain private (403 for other users and anonymous, admin can read). PTC creds stored as Fernet gAAAA... ciphertext, never leaked in GET /orders responses, admin reveal decrypts correctly. Guest orders correctly generate no in-app notifications. Registered-user checkout hides the guest-email input.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Nav / Dashboard", "issues": ["Minor: Radix DialogContent warnings 'Missing Description or aria-describedby' from CartDrawer — accessibility nit, not blocking."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: add DialogDescription (or aria-describedby) to CartDrawer's DialogContent to silence Radix a11y warnings.",
+    "Optional (carry-over from iter 1): show a toast when an event-pass add is rejected because the cart has no bundle — right now only the button label flips to 'Locked' and the locked-notice-{id} is shown, but no toast."
+  ],
+  "critical_code_review_comments": [
+    "server.py get_optional_user swallows every HTTPException from get_current_user, including 429 brute-force lockouts and 401 for expired tokens — a user with a stale token on /checkout will silently be treated as a guest instead of being told to re-login. Consider re-raising 429 specifically.",
+    "assert_order_access() and get_order() correctly gate registered orders (owner or admin) and open guest orders (empty user_id). Good. However, any anonymous caller who guesses/discovers a valid guest order_id (ObjectId) can read the order and post messages on it. Access relies purely on the 24-byte ObjectId being unguessable. Acceptable for an MVP; documenting this is worthwhile.",
+    "checkout() now stores user_email = payload.email for guests but never validates/normalises it beyond .lower() — EmailStr is optional so any string passes. Consider validating format on both guest and authenticated paths.",
+    "server.py still 624 lines — approaching the 700-line guideline; split into routers when convenient.",
+    "CORS uses allow_origin_regex='.*' with allow_credentials=True. Harmless because the frontend uses Bearer tokens (not cookies) so browsers won't reject, but the config is misleading."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% on tested flows"},
+  "test_credentials": "Admin officialwifi@icloud.com / admin (seeded). Test customers registered dynamically per run (trainer_*@example.com / Trainer#2026).",
+  "seed_data_creation": "None persistent. Each run creates 1 admin-CRUD product (deleted at end), a couple of dynamic customers, and 1 guest + 1 registered order. Ciphertext-only PTC creds stored in Mongo.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run backend suite with `pytest /app/backend/tests/backend_test.py -n 0 -v` (project pytest.ini forces -n 2 loadscope which splits session-scoped fixtures across xdist workers — always add -n 0). Admin creds changed: officialwifi@icloud.com / admin. Token key in localStorage is 'pokeforge_token'; guest order ids live in 'pokeforge_guest_orders'. Each `mcp_browser_automation` call spawns a fresh browser context so localStorage/cart state does NOT persist across calls — do login + checkout in the same script. Cart items are lost on hard navigation (page.goto to a new route may lose them if CartContext isn't persisted) — use in-app router links or add items after navigation. Key test ids in play: checkout-page, guest-email-input, ptc-username-input, ptc-password-input, place-order-btn, open-cart-btn, cart-drawer, checkout-btn, add-to-cart-{id}, dashboard-page, admin-page, login-email/login-password/login-submit, register-name/email/password/submit.",
+  "rca of the issue": "Primary bug ('Proceed to checkout' redirected to /login) was already resolved by main agent in this iteration: /checkout, /orders/:id and /dashboard removed from ProtectedRoute in App.js; server.py checkout()/get_order()/assert_order_access() switched to Depends(get_optional_user) and allow anonymous access when order.user_id is empty; models.CheckoutRequest.email made optional and Checkout.jsx conditionally renders guest-email-input. Verified end-to-end."
+}

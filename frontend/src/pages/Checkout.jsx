@@ -32,13 +32,7 @@ export default function Checkout() {
         origin_url: window.location.origin,
         ...(isGuest ? { email } : {}),
       });
-      if (isGuest) {
-        const saved = JSON.parse(localStorage.getItem("pokeforge_guest_orders") || "[]");
-        localStorage.setItem(
-          "pokeforge_guest_orders",
-          JSON.stringify([data.order_id, ...saved.filter((id) => id !== data.order_id)])
-        );
-      }
+      localStorage.setItem("pokeforge_checkout_session", data.session_id);
       window.location.href = data.checkout_url;
     } catch (err) {
       const msg = apiError(err);
@@ -116,7 +110,7 @@ export default function Checkout() {
             disabled={busy || invalid}
             className="mt-8 w-full border border-[#00ffcc] py-4 text-[11px] uppercase tracking-[0.3em] text-[#00ffcc] transition-colors hover:bg-[#00ffcc] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-600 disabled:hover:bg-transparent"
           >
-            {busy ? "Opening secure payment…" : `Pay ${money(total)} with Stripe`}
+            {busy ? "Opening secure payment…" : `Pay ${money(total)} — Crypto or Cash App`}
           </button>
         </form>
       </div>
@@ -139,7 +133,8 @@ export default function Checkout() {
             <span data-testid="checkout-total" className="font-display text-lg text-[#00ffcc]">{money(total)}</span>
           </div>
           <p className="mt-4 text-[10px] leading-relaxed text-zinc-600">
-            Taxes are calculated by Stripe at payment. Test card: 4242 4242 4242 4242.
+            Payment is handled by SellAuth (crypto & Cash App supported). Your order is created the moment
+            payment confirms, and a private tracking link is emailed to you.
           </p>
         </div>
       </aside>

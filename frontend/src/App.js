@@ -33,6 +33,7 @@ function App() {
               <Route path="/payment/cancel" element={<PaymentCancel />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/orders/:id" element={<OrderDetail />} />
+              <Route path="/order/:id" element={<OrderDetail />} />
               <Route
                 path="/admin"
                 element={

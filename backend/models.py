@@ -73,7 +73,6 @@ class Product(BaseDocument):
     badge: str = ""
     active: bool = True
     coming_soon: bool = False
-    stripe_price_id: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
 
 

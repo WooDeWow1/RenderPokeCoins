@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
+import hashlib  # noqa: E402
+import hmac  # noqa: E402
 import jwt  # noqa: E402
-import stripe  # noqa: E402
 from bson import ObjectId  # noqa: E402
 from bson.errors import InvalidId  # noqa: E402
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response  # noqa: E402
@@ -43,6 +44,8 @@ from security import (  # noqa: E402
     hash_password,
     verify_password,
 )
+import sellauth  # noqa: E402
+from emailer import order_tracking_html, send_email  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,9 +53,8 @@ logger = logging.getLogger(__name__)
 client = AsyncIOMotorClient(os.environ["MONGO_URL"])
 db = client[os.environ["DB_NAME"]]
 
-stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-TAX_MODE = "full"
+SELLAUTH_WEBHOOK_SECRET = os.environ["SELLAUTH_WEBHOOK_SECRET"]
+SESSION_TTL_MINUTES = int(os.environ.get("CHECKOUT_SESSION_TTL_MINUTES", "30"))
 
 app = FastAPI(title="PokéForge API")
 api = APIRouter(prefix="/api")
@@ -204,37 +206,6 @@ async def refresh(request: Request, response: Response):
 
 
 # ---------------- Products ----------------
-def ensure_stripe_price(product_id: str, name: str, amount: float, existing_price_id: Optional[str]) -> Optional[str]:
-    try:
-        lookup_key = f"pgx_{product_id}"
-        unit_amount = int(round(amount * 100))
-        if existing_price_id:
-            try:
-                price = stripe.Price.retrieve(existing_price_id)
-                if price.active and price.unit_amount == unit_amount:
-                    return existing_price_id
-                stripe.Price.modify(existing_price_id, active=False, lookup_key=None)
-            except stripe.error.StripeError:
-                pass
-        products = [
-            p for p in stripe.Product.list(active=True, limit=100).auto_paging_iter()
-            if p.to_dict().get("metadata", {}).get("emergent_product_id") == product_id
-        ]
-        sp = products[0] if products else stripe.Product.create(
-            name=name,
-            tax_code="txcd_10000000",
-            metadata={"managed_by": "emergent", "emergent_product_id": product_id},
-        )
-        new_price = stripe.Price.create(
-            product=sp.id, unit_amount=unit_amount, currency="usd",
-            lookup_key=lookup_key, transfer_lookup_key=True,
-        )
-        return new_price.id
-    except stripe.error.StripeError as exc:
-        logger.warning("Stripe price sync failed: %s", exc)
-        return existing_price_id
-
-
 @api.get("/products")
 async def list_products(include_inactive: bool = False):
     query = {} if include_inactive else {"active": True}
@@ -248,9 +219,6 @@ async def create_product(payload: ProductIn, admin: dict = Depends(get_admin_use
         raise HTTPException(status_code=400, detail="Invalid category")
     product = Product(**payload.model_dump())
     result = await db.products.insert_one(product.to_mongo())
-    pid = str(result.inserted_id)
-    price_id = ensure_stripe_price(pid, payload.name, payload.price, None)
-    await db.products.update_one({"_id": result.inserted_id}, {"$set": {"stripe_price_id": price_id}})
     doc = await db.products.find_one({"_id": result.inserted_id})
     return Product.from_mongo(doc).model_dump(by_alias=False)
 
@@ -263,9 +231,6 @@ async def update_product(product_id: str, payload: ProductIn, admin: dict = Depe
     if not existing:
         raise HTTPException(status_code=404, detail="Product not found")
     updates = payload.model_dump()
-    updates["stripe_price_id"] = ensure_stripe_price(
-        product_id, payload.name, payload.price, existing.get("stripe_price_id")
-    )
     await db.products.update_one({"_id": oid(product_id)}, {"$set": updates})
     doc = await db.products.find_one({"_id": oid(product_id)})
     return Product.from_mongo(doc).model_dump(by_alias=False)
@@ -328,118 +293,160 @@ async def checkout(payload: CheckoutRequest, user: Optional[dict] = Depends(get_
     email = (user["email"] if user else (payload.email or "")).lower()
     if not email:
         raise HTTPException(status_code=400, detail="An email address is required for guest checkout")
+
+    # Nothing is written to `orders` yet: a spam-resistant temporary session with a 30 min TTL.
+    session_doc = {
+        "items": [i.model_dump() for i in items],
+        "total": total,
+        "user_id": user_id,
+        "email": email,
+        "origin_url": payload.origin_url.rstrip("/"),
+        "ptc_username_enc": encrypt_secret(payload.ptc_username),
+        "ptc_password_enc": encrypt_secret(payload.ptc_password),
+        "status": "awaiting_payment",
+        "created_at": utc_now(),
+        "expires_at": utc_now() + timedelta(minutes=SESSION_TTL_MINUTES),
+    }
+    result = await db.checkout_sessions.insert_one(session_doc)
+    session_id = str(result.inserted_id)
+
+    try:
+        checkout_data = await sellauth.create_checkout(
+            items=[i.model_dump() for i in items], email=email, session_id=session_id
+        )
+    except sellauth.SellAuthPlanError as exc:
+        await db.checkout_sessions.delete_one({"_id": result.inserted_id})
+        raise HTTPException(status_code=503, detail=str(exc))
+    except sellauth.SellAuthError as exc:
+        await db.checkout_sessions.delete_one({"_id": result.inserted_id})
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    await db.checkout_sessions.update_one(
+        {"_id": result.inserted_id},
+        {"$set": {"invoice_id": checkout_data["invoice_id"], "checkout_url": checkout_data["url"]}},
+    )
+    return {
+        "checkout_url": checkout_data["url"],
+        "session_id": session_id,
+        "invoice_id": checkout_data["invoice_id"],
+    }
+
+
+async def create_order_from_session(session: dict) -> Optional[str]:
+    """Promote a paid checkout session into a permanent order. Idempotent."""
+    if session.get("order_id"):
+        return session["order_id"]
     order = Order(
-        user_id=user_id,
-        user_email=email,
-        items=items,
-        total=total,
-        status="awaiting_payment",
-        ptc_username_enc=encrypt_secret(payload.ptc_username),
-        ptc_password_enc=encrypt_secret(payload.ptc_password),
+        user_id=session.get("user_id", ""),
+        user_email=session["email"],
+        items=[OrderItem(**i) for i in session["items"]],
+        total=session["total"],
+        status="pending",
+        payment_status="paid",
+        session_id=str(session["_id"]),
+        ptc_username_enc=session["ptc_username_enc"],
+        ptc_password_enc=session["ptc_password_enc"],
     )
     result = await db.orders.insert_one(order.to_mongo())
     order_id = str(result.inserted_id)
-
-    line_items = []
-    for i in items:
-        doc = await db.products.find_one({"_id": oid(i.product_id)})
-        price_id = doc.get("stripe_price_id") or ensure_stripe_price(i.product_id, i.name, i.price, None)
-        if not price_id:
-            raise HTTPException(status_code=500, detail="Payment setup unavailable, try again later")
-        if not doc.get("stripe_price_id"):
-            await db.products.update_one({"_id": oid(i.product_id)}, {"$set": {"stripe_price_id": price_id}})
-        line_items.append({"price": price_id, "quantity": i.quantity})
-
-    kwargs = dict(
-        line_items=line_items,
-        mode="payment",
-        success_url=f"{payload.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{payload.origin_url}/payment/cancel",
-        metadata={"user_id": user_id, "order_id": order_id},
+    await db.checkout_sessions.update_one(
+        {"_id": session["_id"]}, {"$set": {"status": "paid", "order_id": order_id}}
     )
+    await notify(session.get("user_id", ""), order_id, "Order received",
+                 "Payment confirmed. Your order is queued — an operator will pick it up shortly.")
+
+    tracking_url = f"{session['origin_url']}/order/{order_id}"
+    await send_email(
+        to=session["email"],
+        subject=f"Payment received — track your {os.environ['EMAIL_FROM_NAME']} order",
+        html=order_tracking_html(
+            order_id=order_id,
+            tracking_url=tracking_url,
+            total=session["total"],
+            item_lines=[f"{i['name']} x{i['quantity']}" for i in session["items"]],
+        ),
+    )
+    return order_id
+
+
+def verify_webhook_signature(raw: bytes, signature: Optional[str]) -> bool:
+    if not signature:
+        return False
+    expected = hmac.new(SELLAUTH_WEBHOOK_SECRET.encode("utf-8"), raw, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature.strip().lower())
+
+
+@app.post("/api/webhooks/sellauth")
+async def sellauth_webhook(request: Request):
+    raw = await request.body()
+    signature = (
+        request.headers.get("signature")
+        or request.headers.get("x-signature")
+        or request.headers.get("x-sellauth-signature")
+    )
+    secret_ok = verify_webhook_signature(raw, signature)
+    if not secret_ok and request.query_params.get("secret") != SELLAUTH_WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
     try:
-        if TAX_MODE == "full":
-            try:
-                session = stripe.checkout.Session.create(**kwargs, managed_payments={"enabled": True})
-            except stripe.error.InvalidRequestError as exc:
-                msg = (exc.user_message or str(exc)).lower()
-                if "managed payments" in msg or "ineligible" in msg:
-                    session = stripe.checkout.Session.create(
-                        **kwargs, automatic_tax={"enabled": True}, billing_address_collection="required"
-                    )
-                else:
-                    raise
-        else:
-            session = stripe.checkout.Session.create(
-                **kwargs, automatic_tax={"enabled": True}, billing_address_collection="required"
-            )
-    except stripe.error.StripeError as exc:
-        await db.orders.delete_one({"_id": result.inserted_id})
-        raise HTTPException(status_code=500, detail=f"Stripe error: {exc.user_message or str(exc)}")
+        payload = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    await db.orders.update_one({"_id": result.inserted_id}, {"$set": {"session_id": session.id}})
-    await db.payment_transactions.insert_one({
-        "session_id": session.id, "order_id": order_id, "user_id": user_id,
-        "amount": total, "currency": "usd", "status": "initiated", "payment_status": "pending",
-        "created_at": utc_now(), "updated_at": utc_now(),
-    })
-    return {"checkout_url": session.url, "session_id": session.id, "order_id": order_id}
+    invoice = payload.get("invoice") if isinstance(payload.get("invoice"), dict) else payload
+    if isinstance(payload.get("data"), dict) and not invoice.get("id"):
+        invoice = payload["data"]
+    invoice_id = str(invoice.get("id") or invoice.get("invoice_id") or "")
+    custom = invoice.get("custom_fields") or payload.get("custom_fields") or {}
+    session_id = custom.get("checkout_session_id") if isinstance(custom, dict) else None
 
+    event_key = f"{invoice_id}:{hashlib.sha256(raw).hexdigest()}"
+    if await db.webhook_events.find_one({"event_key": event_key}):
+        return {"ok": True, "duplicate": True}
 
-async def mark_paid(session_id: str, payment_status: str = "paid", payment_intent: Optional[str] = None):
-    record = await db.payment_transactions.find_one({"session_id": session_id})
-    if not record or record.get("payment_status") == "paid":
-        return
-    await db.payment_transactions.update_one(
-        {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-        {"$set": {"status": "completed", "payment_status": payment_status,
-                  "stripe_payment_intent_id": payment_intent, "updated_at": utc_now()}},
-    )
-    order = await db.orders.find_one({"session_id": session_id})
-    if order and order.get("status") == "awaiting_payment":
-        await db.orders.update_one(
-            {"_id": order["_id"]},
-            {"$set": {"status": "pending", "payment_status": "paid", "updated_at": utc_now()}},
-        )
-        await notify(order["user_id"], str(order["_id"]), "Order received",
-                     "Payment confirmed. Your order is queued — a operator will pick it up shortly.")
-
-
-@api.get("/payments/status/{session_id}")
-async def payment_status(session_id: str):
-    record = await db.payment_transactions.find_one({"session_id": session_id})
-    if not record:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    if record.get("payment_status") != "paid":
+    session = None
+    if session_id:
         try:
-            s = stripe.checkout.Session.retrieve(session_id)
-            if s.payment_status == "paid" or s.status == "complete":
-                await mark_paid(session_id, "paid", s.payment_intent)
-                record = await db.payment_transactions.find_one({"session_id": session_id})
-        except stripe.error.StripeError:
-            pass
-    return {"session_id": record["session_id"], "status": record["status"],
-            "payment_status": record["payment_status"], "order_id": record.get("order_id")}
+            session = await db.checkout_sessions.find_one({"_id": oid(session_id)})
+        except HTTPException:
+            session = None
+    if session is None and invoice_id:
+        session = await db.checkout_sessions.find_one({"invoice_id": invoice_id})
+    if session is None:
+        logger.warning("SellAuth webhook for unknown session/invoice %s", invoice_id)
+        return {"ok": True, "matched": False}
 
+    paid = sellauth.is_paid(invoice)
+    if not paid and invoice_id:
+        fresh = await sellauth.get_invoice(invoice_id)
+        paid = bool(fresh and sellauth.is_paid(fresh))
+    if not paid:
+        return {"ok": True, "paid": False}
 
-@app.post("/api/stripe/webhook")
-async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig = request.headers.get("stripe-signature", "")
+    order_id = await create_order_from_session(session)
     try:
-        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    obj, event_type = event["data"]["object"], event["type"]
-    if event_type in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
-        await mark_paid(obj["id"], obj.get("payment_status", "paid"), obj.get("payment_intent"))
-    elif event_type == "checkout.session.async_payment_failed":
-        await db.payment_transactions.update_one({"session_id": obj["id"]},
-            {"$set": {"status": "failed", "payment_status": "failed", "updated_at": utc_now()}})
-    elif event_type == "checkout.session.expired":
-        await db.payment_transactions.update_one({"session_id": obj["id"]},
-            {"$set": {"status": "expired", "payment_status": "expired", "updated_at": utc_now()}})
-    return {"status": "ok"}
+        await db.webhook_events.insert_one({"event_key": event_key, "received_at": utc_now()})
+    except Exception:
+        pass
+    return {"ok": True, "paid": True, "order_id": order_id}
+
+
+@api.get("/checkout-sessions/{session_id}")
+async def checkout_session_status(session_id: str):
+    session = await db.checkout_sessions.find_one({"_id": oid(session_id)})
+    if not session:
+        raise HTTPException(status_code=404, detail="Checkout session expired or not found")
+    if not session.get("order_id") and session.get("invoice_id"):
+        invoice = await sellauth.get_invoice(session["invoice_id"])
+        if invoice and sellauth.is_paid(invoice):
+            await create_order_from_session(session)
+            session = await db.checkout_sessions.find_one({"_id": oid(session_id)})
+    return {
+        "session_id": session_id,
+        "status": session.get("status", "awaiting_payment"),
+        "order_id": session.get("order_id"),
+        "expires_at": session.get("expires_at"),
+    }
 
 
 @api.get("/orders")
@@ -599,6 +606,9 @@ async def startup():
     await db.orders.create_index("user_id")
     await db.messages.create_index("order_id")
     await db.notifications.create_index("user_id")
+    await db.checkout_sessions.create_index("expires_at", expireAfterSeconds=0)
+    await db.checkout_sessions.create_index("invoice_id")
+    await db.webhook_events.create_index("event_key", unique=True)
 
     admin_email = os.environ["ADMIN_EMAIL"].lower()
     admin_password = os.environ["ADMIN_PASSWORD"]
@@ -615,9 +625,7 @@ async def startup():
     if await db.products.count_documents({}) == 0:
         for entry in SEED_PRODUCTS:
             product = Product(**entry)
-            result = await db.products.insert_one(product.to_mongo())
-            price_id = ensure_stripe_price(str(result.inserted_id), entry["name"], entry["price"], None)
-            await db.products.update_one({"_id": result.inserted_id}, {"$set": {"stripe_price_id": price_id}})
+            await db.products.insert_one(product.to_mongo())
 
 
 @app.on_event("shutdown")

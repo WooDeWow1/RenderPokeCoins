@@ -1,0 +1,127 @@
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --void: #050505;
+    --surface: #0c0c0c;
+    --surface-2: #121212;
+    --neon: #00ffcc;
+    --violet: #9966cc;
+}
+
+@layer base {
+    :root {
+        --background: 0 0% 2%;
+        --foreground: 0 0% 100%;
+        --card: 0 0% 5%;
+        --card-foreground: 0 0% 100%;
+        --popover: 0 0% 4%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 168 100% 50%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 0 0% 12%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0 0% 12%;
+        --muted-foreground: 240 4% 65%;
+        --accent: 271 39% 60%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 3 100% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 12%;
+        --input: 0 0% 12%;
+        --ring: 168 100% 50%;
+        --radius: 0rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        margin: 0;
+        background-color: var(--void);
+        color: #fff;
+        font-family: "JetBrains Mono", monospace;
+        -webkit-font-smoothing: antialiased;
+    }
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: "Unbounded", sans-serif;
+    }
+    ::selection {
+        background: var(--neon);
+        color: #000;
+    }
+}
+
+.font-display {
+    font-family: "Unbounded", sans-serif;
+}
+
+.scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.035) 0px,
+        rgba(255, 255, 255, 0.035) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+}
+
+.grid-bg {
+    background-image:
+        linear-gradient(rgba(0, 255, 204, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 204, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+}
+
+.neon-text {
+    text-shadow: 0 0 12px rgba(0, 255, 204, 0.55);
+}
+
+.neon-border {
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 204, 0.4),
+        0 0 24px -6px rgba(0, 255, 204, 0.35);
+}
+
+.marquee-track {
+    animation: marquee 26s linear infinite;
+}
+@keyframes marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+    background: #1f1f1f;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--neon);
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}

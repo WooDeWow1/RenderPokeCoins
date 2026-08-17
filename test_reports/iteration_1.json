@@ -1,0 +1,31 @@
+{
+  "summary": "Backend: 23/23 pytest cases passed covering auth, products CRUD, cart rule, PTC Fernet encryption, admin credential reveal, order status + notifications, chat access control, admin-only endpoints. Frontend: registration, storefront (6 seeded products across 3 categories), cart rule (event pass shows 'Locked' on empty cart, unlocks after adding a bundle), checkout with PTC fields redirects to Stripe URL, dashboard shows active orders, admin route protection (non-admin redirected to /dashboard), admin login lands on /admin with order list + reveal + status controls + notification bell, wrong-password shows login-error toast, mobile 390x844 rendering works.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProductCard (event_pass)", "issue": "Clicking add-to-cart on an event_pass with empty cart correctly disables the add (button reads 'Locked'), but no visible error toast is rendered — spec requires an explicit toast/notice explaining the Pokécoin Bundle requirement. CartContext.add() returns invalid but ProductCard does not surface a user-facing toast.", "selector": "[data-testid^=add-to-cart-]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: surface a toast (via use-toast hook) inside ProductCard/CartContext when an event_pass add is rejected so the user sees the reason — right now the button silently flips to 'Locked'.",
+    "Optional/naming: test IDs use short suffixes (login-email, login-submit, register-name, register-submit, register-error) but the review spec referenced *-input / *-btn variants. All flows still work; consider aligning IDs to reduce future spec drift."
+  ],
+  "critical_code_review_comments": [
+    "server.py mixes cookie + Bearer auth (kept per playbook note). CORS uses allow_origin_regex='.*' with allow_credentials=True — browsers will refuse credentialed requests with wildcard origin; harmless here because frontend uses Bearer, but the config is misleading and should be restricted to the actual frontend origin if cookies are ever relied on.",
+    "server.py order_response sets ptc_username_masked but leaves the Order model's ptc_username/ptc_password fields (if any) — verified via tests: GET /api/orders and /api/orders/{id} do NOT leak plaintext or ciphertext. Good.",
+    "startup seed_admin correctly upserts the admin password when it differs (matches auth playbook requirement).",
+    "server.py is 602 lines — approaching the 700-line guideline; consider splitting auth/products/orders/messaging into routers.",
+    "checkout deletes the created order if Stripe fails, but not the payment_transactions row (created only after session creation, so fine)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "~95%"},
+  "test_credentials": "Admin admin@pokeforge.gg / ForgeAdmin#2026 (seeded). Test customers created dynamically per run (trainer_*@example.com / Trainer#2026).",
+  "seed_data_creation": "None persisted beyond dynamically registered customers and one order per full run. TEST_ prefixed products cleaned up by test_admin_crud.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with `pytest /app/backend/tests/backend_test.py -n 0 -v` (project pytest.ini forces -n 2 loadscope which splits session-scoped fixture state across xdist workers and breaks order-dependent tests). Frontend test IDs: register-name / register-email / register-password / register-submit / register-error, login-email / login-password / login-submit / login-error, product-card-{id}, add-to-cart-{id}, open-cart-btn, cart-drawer, checkout-btn, checkout-total, ptc-username-input, ptc-password-input, place-order-btn, notification-bell. Admin toggle chat: toggle-chat-{orderId}. Localstorage token key: 'pokeforge_token'.",
+  "rca of the issue": "No blocking bug. Only a minor UX gap: CartContext.add() returns {ok:false, reason:'requires_bundle'} for event_pass without a bundle, but ProductCard does not call toast() on that path, so user only sees the button label change to 'Locked'. Fix: import useToast in ProductCard (or in CartContext.add) and toast the reason when add() returns invalid."
+}

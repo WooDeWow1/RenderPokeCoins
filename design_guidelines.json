@@ -1,0 +1,146 @@
+{
+  "theme": "dark",
+  "typography": {
+    "headings": {
+      "family": "Unbounded, sans-serif",
+      "weights": ["400", "700", "900"],
+      "strategy": "The Anti-Default Rule: High-impact display font, aggressive tracking for massive sizes."
+    },
+    "body": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["400", "500"],
+      "strategy": "Hacker-forum aesthetic. Sterile mono body."
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base leading-relaxed",
+      "labels": "text-xs tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "colors": {
+    "archetype": "ELECTRIC & NEON (Future, Speed, Disruption)",
+    "palette": {
+      "background": "#050505",
+      "surface": "#0C0C0C",
+      "surface_elevated": "#121212",
+      "primary": "#00FFCC", 
+      "secondary": "#9966CC", 
+      "warning": "#F4D03F",
+      "danger": "#FF3B30",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#A1A1AA"
+    },
+    "rules": [
+      "No pure #000000; use #050505 (Deepest Void Black).",
+      "Limit the use of Primary color; use mostly for CTAs or electric highlights.",
+      "Never use full-screen gradients. Use matte black surfaces with glowing 1px borders."
+    ]
+  },
+  "visual_enhancers": {
+    "surface_strategy": "RETRO-FUTURISM (The Terminal Look)",
+    "implementation": [
+      "Background: Deep void black (#050505).",
+      "Borders: 1px solid #1f1f1f, highlighting active elements with #00FFCC.",
+      "Effects: Use a subtle CRT scanline effect (repeating-linear-gradient) over hero backgrounds.",
+      "Glow: Add drop-shadow-[0_0_8px_rgba(0,255,204,0.5)] on active buttons or 'Coming Soon' text."
+    ],
+    "hero_overlay": "bg-black/50 maximum. If using an image, let the cyberpunk vibe shine through."
+  },
+  "components": {
+    "strategy": "HTML/Tailwind for storefront pages for max creativity; Shadcn customized for forms/checkout/admin.",
+    "buttons": "Sharp corners (rounded-none), 1px neon border, black background, neon text. On hover: bg-[#00FFCC] text-black.",
+    "inputs": "Shadcn Form & Input. bg-surface, border border-zinc-800 focus:border-[#00FFCC] rounded-none font-mono.",
+    "cards": "Cardless or sharp rectangular edges. 1px border. No heavy drop shadows; use subtle inner glow or neon border for interaction.",
+    "marquee": "The Kinetic Texture: Fast-moving text with Unbounded, massive outline text (text-8xl+) in the background of Shundo Hunting section."
+  },
+  "layouts": {
+    "storefront": {
+      "mode": "MODE A: THE 'TETRIS' GRID",
+      "description": "Asymmetrical grid for product catalog.",
+      "grid": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 lg:gap-12",
+      "rule": "Leave empty cells for offset alignment. Emphasize 'Event Passes' with row-span-2."
+    },
+    "dashboard": {
+      "mode": "MODE B: High Density Grid",
+      "description": "Admin and Customer portals.",
+      "grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+      "rule": "Every pixel utilized, strict hierarchy. Use border-collapse style layouts for tables."
+    }
+  },
+  "motion": {
+    "rules": [
+      "Do NOT use transition: all. Be specific: transition-colors, transition-transform.",
+      "Hover states: slight lift (-translate-y-1), neon border illumination.",
+      "Use framer-motion for page transitions and staggering list elements."
+    ]
+  },
+  "accessibility": {
+    "contrast": "Ensure text over glowing elements remains readable (use #000000 for text on #00FFCC backgrounds).",
+    "focus": "focus:ring-2 focus:ring-[#00FFCC] focus:ring-offset-2 focus:ring-offset-[#050505]",
+    "testing": "All interactive elements MUST include data-testid (e.g., data-testid='checkout-ptc-input')."
+  },
+  "image_urls": {
+    "hero": [
+      {
+        "url": "https://images.pexels.com/photos/14000461/pexels-photo-14000461.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Shadowy hacker figure with glowing screens.",
+        "category": "Hero Background"
+      },
+      {
+        "url": "https://images.pexels.com/photos/3148351/pexels-photo-3148351.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Person wearing eerie neon LED mask.",
+        "category": "Storefront Banner"
+      }
+    ],
+    "products": [
+      {
+        "url": "https://images.unsplash.com/photo-1742326664912-5a3ac0db64e9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxzbm9ybGF4fGVufDB8fHx8MTc4Njk1NTQwNnww&ixlib=rb-4.1.0&q=85",
+        "description": "Sleeping Snorlax.",
+        "category": "Pokecoin Bundles Product Image"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1780092268932-55da81b2f590?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwzfHxnZW5nYXJ8ZW58MHx8fHwxNzg2OTU1NDA1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Faceted black Gengar figures.",
+        "category": "Event Passes Product Image"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1740483096129-81ca42745672?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwzfHxwc3lkdWNrfGVufDB8fHx8MTc4Njk1NTQwNXww&ixlib=rb-4.1.0&q=85",
+        "description": "Psyduck toy.",
+        "category": "Shundo Hunting Services (Coming Soon) Image"
+      }
+    ]
+  },
+  "3d_libraries": {
+    "strategy": "Atmospherics only.",
+    "library": "TSParticles",
+    "description": "Use TSParticles in the hero section to create floating digital 'dust' or a mesh network, mimicking a dark web hacker vibe."
+  },
+  "general_instructions_to_main_agent": [
+    "You are building a premium, dark-mode gaming e-commerce platform for a hacker-forum demographic.",
+    "DO NOT build generic centered layouts. Use asymmetrical 'Tetris' grid for the storefront.",
+    "DO NOT use 'transparent' background for headers. Use bg-[#050505]/80 backdrop-blur-xl border-b border-[#1f1f1f].",
+    "For the PTC Username/Password form on checkout, give it a 'terminal' aesthetic: JetBrains Mono font, black background, green/cyan 1px border.",
+    "Implement conditional validation warning in the cart if 'Event Pass' is added without 'Currency Bundle'. Show a neon-red error message.",
+    "Use Phosphor Icons (sharp/duotone) for a premium hacker feel. DO NOT use emojis.",
+    "Add 'data-testid' to all buttons, inputs, and key elements for testing.",
+    "Do not use standard generic UI. Make it look like a high-end underground marketplace.",
+    "Use 'sonner' for toast notifications with a custom dark theme (bg-black border-cyan)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Avoid generic, 'on distribution' outputs. Make creative, distinctive frontends.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use 'sonner' for toasts located in /app/src/components/ui/sonner.js."
+  ]
+}

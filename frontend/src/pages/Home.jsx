@@ -1,0 +1,164 @@
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Zap, Lock } from "lucide-react";
+import { api, CATEGORY_LABELS } from "@/lib/api";
+import { ProductCard } from "@/components/ProductCard";
+import { useCart } from "@/context/CartContext";
+
+const HERO = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/3ab05ddaf8a485b60bf1084d4dba78ab7108f82619fa73b9abc772ff7bb7068c.jpeg";
+const GENGAR = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/d51e3620405fffdaa6274f243f8be4dcb033aecf285738dfb12c097e13f28205.jpeg";
+const PSYDUCK = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/a1cb3e2f61373eebc47314154e840108ff51e22f6b3e2445e1d251e47e96c67c.jpeg";
+
+export default function Home() {
+  const [products, setProducts] = useState([]);
+  const { setOpen } = useCart();
+
+  useEffect(() => {
+    api.get("/products").then(({ data }) => setProducts(data)).catch(() => {});
+  }, []);
+
+  const byCat = (c) => products.filter((p) => p.category === c);
+
+  return (
+    <div data-testid="home-page">
+      {/* HERO */}
+      <section className="scanlines relative overflow-hidden border-b border-[#1f1f1f]">
+        <img src={HERO} alt="Snorlax" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/85 to-transparent" />
+        <div className="relative mx-auto grid max-w-[1400px] gap-10 px-5 py-24 lg:grid-cols-12 lg:px-10 lg:py-36">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="lg:col-span-7"
+          >
+            <p className="mb-6 text-xs font-bold uppercase tracking-[0.35em] text-[#00ffcc]">
+              // underground trainer supply
+            </p>
+            <h1 className="font-display text-4xl font-black leading-none tracking-tighter sm:text-5xl lg:text-6xl">
+              POKÉCOINS.<br />
+              EVENT PASSES.<br />
+              <span className="text-[#00ffcc] neon-text">DELIVERED.</span>
+            </h1>
+            <p className="mt-8 max-w-lg text-base leading-relaxed text-zinc-400">
+              Encrypted PTC handoff, live order tracking, and human operators who log in, deliver,
+              and log out. No bots in your DMs — just a channel per order.
+            </p>
+            <div className="mt-10 flex flex-wrap gap-4">
+              <a
+                href="#store"
+                data-testid="hero-shop-btn"
+                className="border border-[#00ffcc] px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-[#00ffcc] transition-colors hover:bg-[#00ffcc] hover:text-black"
+              >
+                Browse Stock
+              </a>
+              <button
+                onClick={() => setOpen(true)}
+                data-testid="hero-cart-btn"
+                className="border border-zinc-700 px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-zinc-300 transition-colors hover:border-white hover:text-white"
+              >
+                View Cart
+              </button>
+            </div>
+          </motion.div>
+
+          <div className="hidden lg:col-span-5 lg:flex lg:items-end lg:justify-end">
+            <motion.img
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.9, delay: 0.2 }}
+              src={GENGAR}
+              alt="Gengar"
+              className="w-[320px] border border-[#9966cc]/40 object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST STRIP */}
+      <section className="border-b border-[#1f1f1f] bg-[#080808]">
+        <div className="mx-auto grid max-w-[1400px] gap-8 px-5 py-12 sm:grid-cols-3 lg:px-10">
+          {[
+            { icon: Lock, title: "AES Encrypted PTC", body: "Credentials sealed with Fernet symmetric encryption. Never stored as plain text." },
+            { icon: Zap, title: "Fast Fulfilment", body: "Most Pokécoin bundles are processed within the hour of payment clearing." },
+            { icon: ShieldCheck, title: "Stay-Logged-Out Alerts", body: "You get pinged the second an operator logs in and again when it's done." },
+          ].map((f) => (
+            <div key={f.title} className="border border-[#141414] p-6">
+              <f.icon className="h-5 w-5 text-[#00ffcc]" />
+              <h3 className="mt-4 font-display text-sm uppercase tracking-wide">{f.title}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-zinc-500">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* STORE */}
+      <section id="store" className="mx-auto max-w-[1400px] px-5 py-20 lg:px-10 lg:py-28">
+        <div className="mb-12 flex items-end justify-between gap-6 border-b border-[#1f1f1f] pb-6">
+          <h2 className="font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
+            {CATEGORY_LABELS.pokecoin_bundle}
+          </h2>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-600">Required for passes</span>
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          {byCat("pokecoin_bundle").map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+
+        <div className="mb-12 mt-24 flex items-end justify-between gap-6 border-b border-[#1f1f1f] pb-6">
+          <h2 className="font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
+            {CATEGORY_LABELS.event_pass}
+          </h2>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#f4d03f]">Bundle required</span>
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          {byCat("event_pass").map((p) => (
+            <ProductCard key={p.id} product={p} featured />
+          ))}
+        </div>
+      </section>
+
+      {/* SHUNDO — COMING SOON */}
+      <section className="relative overflow-hidden border-y border-[#1f1f1f] bg-[#070707] py-20 lg:py-28">
+        <div className="pointer-events-none absolute inset-0 flex items-center opacity-[0.06]">
+          <div className="marquee-track flex whitespace-nowrap">
+            {[0, 1].map((k) => (
+              <span key={k} className="font-display text-7xl font-black tracking-tighter lg:text-9xl">
+                SHUNDO HUNTING · ITOOLS · PGTOOLS · REGIBOT · SHUNGO&nbsp;
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="relative mx-auto grid max-w-[1400px] gap-12 px-5 lg:grid-cols-12 lg:px-10">
+          <div className="lg:col-span-6">
+            <p className="text-xs font-bold uppercase tracking-[0.35em] text-[#9966cc]">// phase two</p>
+            <h2 className="mt-5 font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
+              Shundo Hunting Services
+            </h2>
+            <p className="mt-6 max-w-lg text-sm leading-relaxed text-zinc-400">
+              Advanced location-simulation hunts powered by iTools, PGTools, RegiBot and Shungo.
+              Targeted shiny-hundo acquisition, handled by dedicated operators. Onboarding opens soon —
+              waitlist products are listed below.
+            </p>
+            <span className="mt-8 inline-block border border-[#9966cc] px-5 py-3 text-[10px] uppercase tracking-[0.3em] text-[#9966cc]">
+              Coming Soon
+            </span>
+          </div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:col-span-6">
+            {byCat("shundo_service").map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+            {byCat("shundo_service").length === 0 && (
+              <img src={PSYDUCK} alt="Psyduck" className="border border-[#1f1f1f] object-cover" />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <footer className="mx-auto max-w-[1400px] px-5 py-12 text-[10px] uppercase tracking-[0.25em] text-zinc-600 lg:px-10">
+        PokéForge · unofficial fan marketplace · not affiliated with Niantic or The Pokémon Company
+      </footer>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Info, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { api, apiError, money } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
@@ -84,6 +84,23 @@ export default function Checkout() {
                 </p>
               </div>
             )}
+            <div
+              data-testid="checkout-how-it-works"
+              className="border border-[#00ffcc]/50 bg-[#00ffcc]/[0.06] p-5"
+            >
+              <p className="flex items-center gap-2 font-display text-xs uppercase tracking-[0.2em] text-[#00ffcc]">
+                <Info className="h-4 w-4" /> How it works:
+              </p>
+              <p className="mt-4 text-xs leading-relaxed text-zinc-200">
+                Please provide your PTC (Pokemon Trainer Club) login at the time of checkout. We are unable
+                to use logins via Google or Facebook.
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-zinc-200">
+                After you checkout, orders are fulfilled usually within 1 hour. Go to your unique order page
+                to track progress! If we are unable to log in to the account, we may need to contact you
+                directly via chat or email.
+              </p>
+            </div>
             <div>
               <label className={label}>PTC Username</label>
               <input data-testid="ptc-username-input" className={input} value={ptcUsername}

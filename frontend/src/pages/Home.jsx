@@ -41,8 +41,9 @@ export default function Home() {
               <span className="text-[#00ffcc] neon-text">DELIVERED.</span>
             </h1>
             <p className="mt-8 max-w-lg text-base leading-relaxed text-zinc-400">
-              Encrypted PTC handoff, live order tracking, and human operators who log in, deliver,
-              and log out. No bots in your DMs — just a channel per order.
+              Unlimited raids. Bottomless coins. Fraction of the price. Bypass expensive in-game stores with
+              the cheapest PokéCoin drops and weekly ticket deals in the scene. Keep your inventory locked and
+              loaded 24/7.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <a
@@ -157,7 +158,7 @@ export default function Home() {
       </section>
 
       <footer className="mx-auto max-w-[1400px] px-5 py-12 text-[10px] uppercase tracking-[0.25em] text-zinc-600 lg:px-10">
-        PokéForge · unofficial fan marketplace · not affiliated with Niantic or The Pokémon Company
+        © 2026 PokeCoins.cc · unofficial fan marketplace · not affiliated with Niantic or The Pokémon Company
       </footer>
     </div>
   );

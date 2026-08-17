@@ -24,12 +24,11 @@ export const Navbar = () => {
     <header className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-[#050505]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 lg:px-10">
         <Link to="/" data-testid="brand-logo" className="font-display text-lg font-black tracking-tighter">
-          POKÉ<span className="text-[#00ffcc] neon-text">FORGE</span>
+          POKE<span className="text-[#00ffcc] neon-text">COINS</span>
         </Link>
 
         <nav className="hidden items-center gap-10 md:flex">
           <Link to="/" className={linkCls} data-testid="nav-store">Store</Link>
-          <Link to="/dashboard" className={linkCls} data-testid="nav-dashboard">Orders</Link>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} data-testid="nav-admin">Admin</Link>
           )}
@@ -82,7 +81,6 @@ export const Navbar = () => {
       {mobile && (
         <div data-testid="mobile-menu" className="flex flex-col gap-4 border-t border-[#1f1f1f] px-5 py-5 md:hidden">
           <Link to="/" className={linkCls} onClick={() => setMobile(false)}>Store</Link>
-          <Link to="/dashboard" className={linkCls} onClick={() => setMobile(false)}>Orders</Link>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} onClick={() => setMobile(false)}>Admin</Link>
           )}

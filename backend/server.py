@@ -56,7 +56,7 @@ db = client[os.environ["DB_NAME"]]
 SELLAUTH_WEBHOOK_SECRET = os.environ["SELLAUTH_WEBHOOK_SECRET"]
 SESSION_TTL_MINUTES = int(os.environ.get("CHECKOUT_SESSION_TTL_MINUTES", "30"))
 
-app = FastAPI(title="PokéForge API")
+app = FastAPI(title="PokeCoins API")
 api = APIRouter(prefix="/api")
 
 
@@ -560,7 +560,7 @@ async def mark_notifications_read(user: dict = Depends(get_current_user)):
 
 @api.get("/")
 async def root():
-    return {"message": "PokéForge API online"}
+    return {"message": "PokeCoins API online"}
 
 
 app.include_router(api)

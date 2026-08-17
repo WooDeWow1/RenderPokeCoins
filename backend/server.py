@@ -565,6 +565,10 @@ SEED_PRODUCTS = [
     {"name": "Shundo Hunt — Single Target", "description": "Location-simulated shundo hunting via iTools, PGTools, RegiBot & Shungo. Launching soon.",
      "category": "shundo_service", "price": 49.99, "badge": "COMING SOON", "coming_soon": True,
      "image_url": "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/a1cb3e2f61373eebc47314154e840108ff51e22f6b3e2445e1d251e47e96c67c.jpeg"},
+    {"name": "Shundo Hunt — Community Day Background Target",
+     "description": "Operators run your account in the background all Community Day, chasing the featured shiny-hundo while you go about your day. Launching soon.",
+     "category": "shundo_service", "price": 79.99, "badge": "COMING SOON", "coming_soon": True,
+     "image_url": "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/d51e3620405fffdaa6274f243f8be4dcb033aecf285738dfb12c097e13f28205.jpeg"},
 ]
 
 

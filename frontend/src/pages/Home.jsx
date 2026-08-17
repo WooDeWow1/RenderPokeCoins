@@ -137,9 +137,9 @@ export default function Home() {
               Shundo Hunting Services
             </h2>
             <p className="mt-6 max-w-lg text-sm leading-relaxed text-zinc-400">
-              Advanced location-simulation hunts powered by iTools, PGTools, RegiBot and Shungo.
-              Targeted shiny-hundo acquisition, handled by dedicated operators. Onboarding opens soon —
-              waitlist products are listed below.
+              Advanced, targeted Shundo acquisition handled by our dedicated operator fleet. We use a private
+              suite of secure simulation tools to hunt down your exact shiny-hundos while keeping your account
+              completely safe. Onboarding opens soon
             </p>
             <span className="mt-8 inline-block border border-[#9966cc] px-5 py-3 text-[10px] uppercase tracking-[0.3em] text-[#9966cc]">
               Coming Soon

@@ -6,9 +6,9 @@ import { api, CATEGORY_LABELS } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
 
-const HERO = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/3ab05ddaf8a485b60bf1084d4dba78ab7108f82619fa73b9abc772ff7bb7068c.jpeg";
-const GENGAR = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/d51e3620405fffdaa6274f243f8be4dcb033aecf285738dfb12c097e13f28205.jpeg";
-const PSYDUCK = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/a1cb3e2f61373eebc47314154e840108ff51e22f6b3e2445e1d251e47e96c67c.jpeg";
+const HERO = "/images/snorlax.jpg";
+const GENGAR = "/images/gengar.jpg";
+const PSYDUCK = "/images/psyduck.jpg";
 
 export default function Home() {
   const [products, setProducts] = useState([]);

@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Coins, Radar, ShieldCheck, Zap } from "lucide-react";
 
-const HERO = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/3ab05ddaf8a485b60bf1084d4dba78ab7108f82619fa73b9abc772ff7bb7068c.jpeg";
-const PSYDUCK = "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/a1cb3e2f61373eebc47314154e840108ff51e22f6b3e2445e1d251e47e96c67c.jpeg";
+const HERO = "/images/snorlax.jpg";
+const PSYDUCK = "/images/psyduck.jpg";
 
 const ADVANTAGES = [
   {

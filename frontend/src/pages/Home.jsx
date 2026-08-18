@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { useCart } from "@/context/CartContext";
 
 const HERO = "/images/snorlax.jpg";
-const GENGAR = "/images/gengar.jpg";
+const GENGAR = "/images/Mainpage.jpg";
 const PSYDUCK = "/images/psyduck.jpg";
 
 export default function Home() {
@@ -70,8 +70,8 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.2 }}
               src={GENGAR}
-              alt="Gengar"
-              className="w-[320px] border border-[#9966cc]/40 object-cover"
+              alt="PokeCoins hero artwork"
+              className="w-full max-w-[520px] border border-[#00ffcc]/30 object-cover"
             />
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldCheck, Zap, Lock } from "lucide-react";
 import { api, CATEGORY_LABELS } from "@/lib/api";
@@ -117,6 +118,28 @@ export default function Home() {
           {byCat("event_pass").map((p) => (
             <ProductCard key={p.id} product={p} featured />
           ))}
+        </div>
+
+        <div className="mb-12 mt-24 flex items-end justify-between gap-6 border-b border-[#1f1f1f] pb-6">
+          <h2 className="font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
+            {CATEGORY_LABELS.medals}
+          </h2>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#c7a6f0]">Standalone or bundled</span>
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          {byCat("medals").map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+
+        <div className="mt-16 flex justify-center">
+          <Link
+            to="/products"
+            data-testid="home-all-products-btn"
+            className="border border-zinc-700 px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-zinc-300 transition-colors hover:border-[#00ffcc] hover:text-[#00ffcc]"
+          >
+            View full catalog
+          </Link>
         </div>
       </section>
 

@@ -6,7 +6,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 
 PyObjectId = Annotated[str, BeforeValidator(lambda v: str(v) if isinstance(v, ObjectId) else v)]
 
-CATEGORIES = ["pokecoin_bundle", "event_pass", "shundo_service"]
+CATEGORIES = ["pokecoin_bundle", "event_pass", "medals", "shundo_service"]
 ORDER_STATUSES = ["awaiting_payment", "pending", "processing", "completed", "cancelled"]
 
 
@@ -56,6 +56,7 @@ class ProductIn(BaseModel):
     description: str = ""
     category: str
     price: float = Field(gt=0)
+    msrp: Optional[float] = Field(default=None, gt=0)
     image_url: str = ""
     coins: Optional[int] = None
     badge: str = ""
@@ -68,6 +69,7 @@ class Product(BaseDocument):
     description: str = ""
     category: str
     price: float
+    msrp: Optional[float] = None
     image_url: str = ""
     coins: Optional[int] = None
     badge: str = ""
@@ -136,3 +138,9 @@ class Notification(BaseDocument):
     body: str
     read: bool = False
     created_at: datetime = Field(default_factory=utc_now)
+
+
+class WaitlistIn(BaseModel):
+    email: EmailStr
+    product_id: Optional[str] = None
+    note: str = ""

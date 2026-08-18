@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 5 verified the new medals category, MSRP pricing, /products catalog page, /about page, waitlist endpoints and Navbar changes. Backend: 37/38 pass (one unrelated pre-existing test expects 503 plan-gate but SellAuth now returns 200 for guest checkout with delivered@resend.dev — plan gate appears to have been unlocked for guest path). Frontend: all requested UI/flow checks pass end-to-end on desktop (1920x1080) and mobile (390x844).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/orders/checkout (guest)", "issue": "TestCheckoutPlanGate.test_guest_checkout_503_and_no_order_no_orphan now fails because SellAuth returned 200 with a real checkout_url for guest email delivered@resend.dev (previously returned 503 plan gate). The registered-user path still returns 502/503. Not caused by this iteration — the SellAuth plan/account behavior changed. Suggest either (a) updating the test to accept 200 as pass and cleaning up the created checkout_sessions doc, or (b) confirming with product owner whether guest checkout is now intentionally live."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Update TestCheckoutPlanGate.test_guest_checkout_503_and_no_order_no_orphan to accept status 200 (SellAuth accepted the guest checkout) OR verify whether the account/plan should still gate guest checkout. Either way, cleanup the leftover checkout_sessions doc when a 200 response is observed in tests."
+  ],
+  "critical_code_review_comments": [
+    "server.py: CATEGORIES now includes 'medals'; POST/PUT /api/products correctly validate against CATEGORIES (400 on invalid). Verified via new tests.",
+    "server.py: /api/waitlist is public and upserts on (email, product_id) — verified duplicates do not create extra rows. /api/admin/waitlist is admin-gated (401 anon, 403 customer, 200 admin) — verified.",
+    "server.py checkout(): the Event Pass gate correctly requires a Pokécoin Bundle even when the cart contains medals, matching the spec. Medals-only and medals+bundle carts pass validation.",
+    "models.py: ProductIn/Product got optional msrp with gt=0. Seeded Platinum Medal products carry msrp 49.99 / 199.99 and appear via GET /api/products.",
+    "Navbar/Products/About/ProductCard/Home components render all required data-testids (nav-store/products/about/cart, mobile-nav-*, products-page, filter-tab-*, product-msrp-*, product-savings-*, requires-bundle-badge-*, standalone-badge-*, add-to-cart-*, join-waitlist-*, about-page, home-all-products-btn). Verified in browser.",
+    "Anonymous join-waitlist correctly uses window.prompt and POSTs to /api/waitlist (accepted, upsert, no duplicate).",
+    "Cart gating verified in UI: adding only a Platinum Medal to an empty cart shows 'locked-notice-*' on every Event Pass card and the LOCKED button — medals do NOT unlock Event Passes.",
+    "Admin console: product-category-select lists Platinum Medals; product-msrp-input renders. Full CRUD (create/edit/delete) with medals category succeeds via API tests.",
+    "Home page hero copy updated ('Unlimited raids. Bottomless coins...'), footer '© 2026 PokeCoins.cc · unofficial fan marketplace ...' present, brand renders as POKÉCOINS (with É), Platinum Medals section present, home-all-products-btn present and routes to /products."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py — added TestMedalsCategory, TestMedalsCartLogic, TestWaitlist classes (7 new tests)"
+  ],
+  "success_rate": {"backend": "97% (37/38, 1 pre-existing test expectation broken by SellAuth account change)", "frontend": "100% (all requested flows passed)"},
+  "test_credentials": "Admin: officialwifi@icloud.com / admin. Customer created per session via /api/auth/register (trainer_<hex>@example.com / Trainer#2026).",
+  "seed_data_creation": "Test-only checkout_sessions and waitlist docs are inserted by tests and cleaned up (waitlist explicitly deleted; sessions removed by 503-cleanup path except for the one guest-checkout test above which now leaves a session because SellAuth returned 200 instead of 503).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All iteration-5 features (medals category, MSRP display, /products catalog, /about page, Navbar rework, waitlist endpoints, medal cart gating) verified via pytest + Playwright. The lone pytest failure (TestCheckoutPlanGate.test_guest_checkout_503_and_no_order_no_orphan) is a pre-existing test expectation that no longer matches production SellAuth behavior — the guest path returned 200 with a real checkout_url. Registered-user checkout still returns 502/503 as expected. If SellAuth is truly live for guest now, subsequent tests may want to promote a real invoice via webhook end-to-end without inserting the session manually. Auth is Bearer tokens (localStorage 'pokeforge_token' on the frontend) + httpOnly cookies. Do not exceed 5 failed admin logins per IP+email (15-min lockout).",
+  "rca of the issue": "The failed test asserts SellAuth returns 503 plan-gate for guest checkout. Actual response was HTTP 200 with a real checkout_url and invoice_id, meaning SellAuth accepted the invoice. This indicates either the shop's Checkout API plan has been upgraded OR the guest email 'delivered@resend.dev' now passes their internal validator. Not a regression in this iteration — /orders/checkout code, cart validation and session cleanup all work correctly. Recommended fix in test: accept 200 as a valid outcome and delete the resulting checkout_sessions doc after the assertion."
+}

@@ -418,3 +418,105 @@ class TestAdminProtection:
     def test_admin_can_list_orders(self, admin_token):
         r = requests.get(f"{API}/admin/orders", headers=auth(admin_token))
         assert r.status_code == 200 and isinstance(r.json(), list)
+
+
+# ---------------- Medals category + MSRP ----------------
+class TestMedalsCategory:
+    def test_seeded_medals_present_with_msrp(self):
+        products = _products()
+        medals = [p for p in products if p["category"] == "medals"]
+        assert len(medals) >= 2, f"Expected >= 2 seeded medals, got {len(medals)}"
+        names = {p["name"] for p in medals}
+        assert "Platinum Medal — Single Badge" in names
+        assert "Platinum Medal — Full Set Grind" in names
+        for p in medals:
+            assert p.get("msrp") is not None and p["msrp"] > p["price"]
+
+    def test_admin_can_create_medals_product(self, admin_token):
+        payload = {"name": "TEST_MedalProd", "description": "d", "category": "medals",
+                   "price": 12.5, "msrp": 25.0}
+        r = requests.post(f"{API}/products", headers=auth(admin_token), json=payload)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["category"] == "medals"
+        assert data["msrp"] == 25.0
+        pid = data["id"]
+        # Cleanup
+        requests.delete(f"{API}/products/{pid}", headers=auth(admin_token))
+
+    def test_non_admin_cannot_create_medals(self, customer):
+        payload = {"name": "TEST_MedalUnauth", "description": "d", "category": "medals",
+                   "price": 1.0, "msrp": 2.0}
+        r = requests.post(f"{API}/products", headers=auth(customer["token"]), json=payload)
+        assert r.status_code == 403
+
+    def test_invalid_category_400(self, admin_token):
+        payload = {"name": "TEST_BadCat", "description": "d", "category": "junk_category",
+                   "price": 1.0}
+        r = requests.post(f"{API}/products", headers=auth(admin_token), json=payload)
+        assert r.status_code == 400
+
+
+# ---------------- Medals cart logic ----------------
+class TestMedalsCartLogic:
+    def test_medals_only_does_not_unlock_event_pass(self, customer):
+        """Cart with medals + event_pass but no bundle => 400."""
+        medal = _find("medals")
+        ep = _find("event_pass")
+        assert medal and ep
+        r = requests.post(f"{API}/orders/checkout", headers=auth(customer["token"]), json={
+            "items": [
+                {"product_id": medal["id"], "quantity": 1},
+                {"product_id": ep["id"], "quantity": 1},
+            ],
+            "ptc_username": "u", "ptc_password": "p", "origin_url": BASE_URL,
+        })
+        assert r.status_code == 400
+        assert "Pok" in r.json()["detail"]
+
+    def test_medals_only_passes_validation(self, customer):
+        """Medals-only checkout passes cart validation; then SellAuth plan gate (503/502)."""
+        medal = _find("medals")
+        assert medal
+        r = requests.post(f"{API}/orders/checkout", headers=auth(customer["token"]), json={
+            "items": [{"product_id": medal["id"], "quantity": 1}],
+            "ptc_username": "u", "ptc_password": "p", "origin_url": BASE_URL,
+        })
+        # Must NOT be 400 (validation passed); should be 502/503 from SellAuth plan gate
+        assert r.status_code in (502, 503), f"expected plan-gate error, got {r.status_code}: {r.text}"
+
+    def test_medals_plus_bundle_passes_validation(self, customer):
+        medal = _find("medals")
+        bundle = _find("pokecoin_bundle")
+        r = requests.post(f"{API}/orders/checkout", headers=auth(customer["token"]), json={
+            "items": [
+                {"product_id": medal["id"], "quantity": 1},
+                {"product_id": bundle["id"], "quantity": 1},
+            ],
+            "ptc_username": "u", "ptc_password": "p", "origin_url": BASE_URL,
+        })
+        assert r.status_code in (502, 503), r.text
+
+
+# ---------------- Waitlist ----------------
+class TestWaitlist:
+    def test_waitlist_public_upsert(self):
+        email = f"TEST_wl_{uuid.uuid4().hex[:8]}@example.com"
+        payload = {"email": email, "product_id": "shundo-1"}
+        r1 = requests.post(f"{API}/waitlist", json=payload)
+        assert r1.status_code == 200 and r1.json().get("ok") is True
+        # Duplicate submission does not increase count (upsert)
+        r2 = requests.post(f"{API}/waitlist", json=payload)
+        assert r2.status_code == 200
+        count = db.waitlist.count_documents({"email": email.lower(), "product_id": "shundo-1"})
+        assert count == 1
+        db.waitlist.delete_many({"email": email.lower()})
+
+    def test_admin_waitlist_requires_admin(self, customer):
+        assert requests.get(f"{API}/admin/waitlist").status_code == 401
+        assert requests.get(f"{API}/admin/waitlist",
+                            headers=auth(customer["token"])).status_code == 403
+
+    def test_admin_waitlist_lists(self, admin_token):
+        r = requests.get(f"{API}/admin/waitlist", headers=auth(admin_token))
+        assert r.status_code == 200 and isinstance(r.json(), list)

@@ -9,7 +9,7 @@ const input =
   "w-full bg-[#050505] px-3 py-2 text-xs text-white outline-none ring-1 ring-zinc-800 focus:ring-[#00ffcc]";
 const label = "mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-zinc-500";
 const EMPTY = {
-  name: "", description: "", category: "pokecoin_bundle", price: "", image_url: "",
+  name: "", description: "", category: "pokecoin_bundle", price: "", msrp: "", image_url: "",
   coins: "", badge: "", active: true, coming_soon: false,
 };
 
@@ -58,6 +58,7 @@ export default function Admin() {
     const payload = {
       ...form,
       price: parseFloat(form.price),
+      msrp: form.msrp === "" ? null : parseFloat(form.msrp),
       coins: form.coins === "" ? null : parseInt(form.coins, 10),
     };
     try {
@@ -76,7 +77,7 @@ export default function Admin() {
     setEditing(p.id);
     setForm({
       name: p.name, description: p.description, category: p.category, price: String(p.price),
-      image_url: p.image_url || "", coins: p.coins ?? "", badge: p.badge || "",
+      msrp: p.msrp ?? "", image_url: p.image_url || "", coins: p.coins ?? "", badge: p.badge || "",
       active: p.active, coming_soon: p.coming_soon,
     });
     setTab("products");
@@ -210,13 +211,18 @@ export default function Admin() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className={label}>MSRP (optional)</label>
+                <input data-testid="product-msrp-input" className={input} type="number" step="0.01" min="0.5"
+                       value={form.msrp} onChange={set("msrp")} />
+              </div>
+              <div>
                 <label className={label}>Coins (optional)</label>
                 <input data-testid="product-coins-input" className={input} type="number" value={form.coins} onChange={set("coins")} />
               </div>
-              <div>
-                <label className={label}>Badge</label>
-                <input data-testid="product-badge-input" className={input} value={form.badge} onChange={set("badge")} />
-              </div>
+            </div>
+            <div>
+              <label className={label}>Badge</label>
+              <input data-testid="product-badge-input" className={input} value={form.badge} onChange={set("badge")} />
             </div>
             <div>
               <label className={label}>Image URL</label>

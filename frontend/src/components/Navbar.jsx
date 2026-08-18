@@ -29,6 +29,11 @@ export const Navbar = () => {
 
         <nav className="hidden items-center gap-10 md:flex">
           <Link to="/" className={linkCls} data-testid="nav-store">Store</Link>
+          <Link to="/products" className={linkCls} data-testid="nav-products">Products</Link>
+          <Link to="/about" className={linkCls} data-testid="nav-about">About Us</Link>
+          <button onClick={() => setOpen(true)} className={linkCls} data-testid="nav-cart">
+            Cart
+          </button>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} data-testid="nav-admin">Admin</Link>
           )}
@@ -81,6 +86,22 @@ export const Navbar = () => {
       {mobile && (
         <div data-testid="mobile-menu" className="flex flex-col gap-4 border-t border-[#1f1f1f] px-5 py-5 md:hidden">
           <Link to="/" className={linkCls} onClick={() => setMobile(false)}>Store</Link>
+          <Link to="/products" className={linkCls} data-testid="mobile-nav-products" onClick={() => setMobile(false)}>
+            Products
+          </Link>
+          <Link to="/about" className={linkCls} data-testid="mobile-nav-about" onClick={() => setMobile(false)}>
+            About Us
+          </Link>
+          <button
+            className={`${linkCls} text-left`}
+            data-testid="mobile-nav-cart"
+            onClick={() => {
+              setMobile(false);
+              setOpen(true);
+            }}
+          >
+            Cart
+          </button>
           {user?.role === "admin" && (
             <Link to="/admin" className={linkCls} onClick={() => setMobile(false)}>Admin</Link>
           )}

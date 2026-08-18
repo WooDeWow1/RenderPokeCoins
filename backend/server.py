@@ -33,6 +33,7 @@ from models import (  # noqa: E402
     RegisterRequest,
     StatusUpdate,
     UserPublic,
+    WaitlistIn,
     utc_now,
 )
 from security import (  # noqa: E402
@@ -558,6 +559,27 @@ async def mark_notifications_read(user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# ---------------- Waitlist ----------------
+@api.post("/waitlist")
+async def join_waitlist(payload: WaitlistIn):
+    await db.waitlist.update_one(
+        {"email": payload.email.lower(), "product_id": payload.product_id},
+        {"$set": {"email": payload.email.lower(), "product_id": payload.product_id,
+                  "note": payload.note, "created_at": utc_now()}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api.get("/admin/waitlist")
+async def list_waitlist(admin: dict = Depends(get_admin_user)):
+    docs = await db.waitlist.find().sort("created_at", -1).to_list(500)
+    return [
+        {"email": d["email"], "product_id": d.get("product_id"), "created_at": d.get("created_at")}
+        for d in docs
+    ]
+
+
 @api.get("/")
 async def root():
     return {"message": "PokeCoins API online"}
@@ -592,6 +614,14 @@ SEED_PRODUCTS = [
     {"name": "Shundo Hunt — Single Target", "description": "Location-simulated shundo hunting via iTools, PGTools, RegiBot & Shungo. Launching soon.",
      "category": "shundo_service", "price": 49.99, "badge": "COMING SOON", "coming_soon": True,
      "image_url": "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/a1cb3e2f61373eebc47314154e840108ff51e22f6b3e2445e1d251e47e96c67c.jpeg"},
+    {"name": "Platinum Medal — Single Badge",
+     "description": "Operator grind service to push any single medal to Platinum. Standalone or bundled with coins.",
+     "category": "medals", "price": 24.99, "msrp": 49.99, "badge": "SERVICE",
+     "image_url": "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/7b6169728db891ad39928b62dcd6c8d71d90bf729363109f5bf1314dc20af698.jpeg"},
+    {"name": "Platinum Medal — Full Set Grind",
+     "description": "Full sweep of the medal board to Platinum, handled by our operator fleet across multiple sessions.",
+     "category": "medals", "price": 99.99, "msrp": 199.99, "badge": "BEST VALUE",
+     "image_url": "https://static.prod-images.emergentagent.com/jobs/14c26eb3-0841-4dbf-8b14-87aeae68ff36/images/c8ad17cbe0d213c6c2da362c18d24221a0c2ea48e22daa9a6766b21c81d3e8c4.jpeg"},
     {"name": "Shundo Hunt — Community Day Background Target",
      "description": "Operators run your account in the background all Community Day, chasing the featured shiny-hundo while you go about your day. Launching soon.",
      "category": "shundo_service", "price": 79.99, "badge": "COMING SOON", "coming_soon": True,

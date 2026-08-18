@@ -28,14 +28,14 @@ UI: premium dark-mode hacker-forum gaming aesthetic with Snorlax / Gengar / Psyd
 
 ## Implemented
 - 2026-06: JWT auth + seeded admin, brute-force lockout, admin-gated routes; storefront with neon Snorlax/Gengar/Psyduck art; cart with dual-sided Event Pass ↔ Pokécoin Bundle validation; PTC checkout with Fernet encryption; customer dashboard, order detail with status timeline + stay-logged-out warning; per-order chat; in-app notification bell; admin console (orders, statuses, PTC reveal, product CRUD); mobile responsive
-- 2026-06: guest checkout (public cart/checkout/order tracking), admin credentials changed, Shundo section copy + second Shundo product
+- 2026-06: guest checkout (public cart/checkout/order tracking), Shundo section copy + second Shundo product
 - 2026-06: Stripe removed; SellAuth + temporary `checkout_sessions` (30 min TTL) + signed webhook order promotion + tracking-link email; `/order/{id}` tracking route
-
-## Known blockers
-- SellAuth's Checkout API is not enabled on the store's current subscription plan → `POST /api/orders/checkout` returns 503 with a clear message. Paid path verified via signed webhook simulation (`/app/scripts/simulate_sellauth_webhook.py`).
+- 2026-06: rebrand to PokeCoins (header, tab title, footer © 2026 PokeCoins.cc, email sender, API), new hero subtitle; public 'Orders' nav link removed (all-orders list is admin-only); checkout 'How it works' info card
+- 2026-06: `medals` (Platinum Medals) category with MSRP-vs-price display; dedicated `/products` catalog with filter tabs; dedicated `/about` page; public `POST /api/waitlist` + admin `GET /api/admin/waitlist`; nav = Store / Products / About Us / Cart (+ Admin for admins)
+- 2026-06: SellAuth Checkout API confirmed LIVE — real hosted checkout URLs are now returned (invoice ids stored on the session for webhook matching)
 
 ## Backlog
-- P1: verify live SellAuth invoice creation once the plan is upgraded; capture the real webhook payload shape and tighten field mapping
+- P1: confirm the real SellAuth webhook payload shape on a live paid invoice and tighten field mapping
 - P1: guest order lookup by email + order number; credential auto-purge after completion
 - P2: coupon codes, admin order search/filters, sales analytics, audit log of credential reveals
 - P2: split `server.py` into routers, admin 2FA

@@ -127,7 +127,7 @@ export default function Checkout() {
             disabled={busy || invalid}
             className="mt-8 w-full border border-[#00ffcc] py-4 text-[11px] uppercase tracking-[0.3em] text-[#00ffcc] transition-colors hover:bg-[#00ffcc] hover:text-black disabled:cursor-not-allowed disabled:border-zinc-800 disabled:text-zinc-600 disabled:hover:bg-transparent"
           >
-            {busy ? "Opening secure payment…" : `Pay ${money(total)} — Crypto or Cash App`}
+            {busy ? "Opening secure payment…" : `Pay ${money(total)}`}
           </button>
         </form>
       </div>

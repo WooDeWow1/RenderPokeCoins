@@ -37,7 +37,7 @@
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
     "cra-template": "1.2.0",
-    "date-fns": "4.1.0",
+    "date-fns": "3.6.0",
     "dayjs": "1.11.13",
     "embla-carousel-react": "8.6.0",
     "framer-motion": "11.18.0",
@@ -46,7 +46,7 @@
     "lucide-react": "0.516.0",
     "next-themes": "0.4.6",
     "react": "19.0.0",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "9.11.1",
     "react-dom": "19.0.0",
     "react-hook-form": "7.56.2",
     "react-resizable-panels": "3.0.1",
@@ -83,6 +83,8 @@
     "@emergentbase/visual-edits": "https://assets.emergent.sh/npm/emergentbase-visual-edits-1.0.13.tgz",
     "@eslint/js": "9.23.0",
     "@types/lodash": "4.17.24",
+    "ajv": "8.17.1",
+    "ajv-keywords": "5.1.0",
     "autoprefixer": "10.4.20",
     "dotenv": "16.4.5",
     "eslint": "9.23.0",
@@ -94,7 +96,16 @@
     "postcss": "8.5.10",
     "tailwindcss": "3.4.17"
   },
+  "overrides": {
+    "date-fns": "$date-fns",
+    "postcss": "$postcss",
+    "react-router": "7.15.1",
+    "nth-check": "^2.0.1",
+    "webpack-dev-server": "^5.2.6",
+    "http-proxy-middleware": "^2.0.10"
+  },
   "resolutions": {
+    "date-fns": "3.6.0",
     "react-router": "7.15.1",
     "node-forge": "1.4.0",
     "fast-uri": "3.1.2",
